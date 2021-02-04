@@ -21,9 +21,9 @@ First you need an instance of your client.
 
 ```cs
 var httpClient = new HttpClient();
-var environmentManager = new EnvironmentManager(Environment.Production);
+var environmentManager = new EnvironmentManager(Environment.Sandbox);
 
-var client = new Client(httpClient, environmentManager, "identity_client_secret_goes_here");
+var client = new Client(httpClient, environmentManager, "IdentityClientSecretGoesHere");
 ```
 
 # Getting an Access Token
@@ -31,23 +31,21 @@ var client = new Client(httpClient, environmentManager, "identity_client_secret_
 Once you have an instance of your client, you can authenticate using the credentials provided to you.
 
 ```cs
-var accessTokenResponse = await client.IdentityApi.GetAccessTokenAsync(new IdentityRequest(143, "SandboxUser", "QJB!u4@zCpcNI3YJ2QOpZLP1ZytN3OVzTKKRxFEWl04#TJE"))
-.ConfigureAwait(false);
+var accessTokenResponse = await client.IdentityApi.GetAccessTokenAsync(new IdentityRequest(143, "SandboxUser", "SandboxPassword"))
+    .ConfigureAwait(false);
 ```
 
 # Tokenizing Payment Information
 
-Use your access token to secure payment information.
+Use your access token to secure payment information. For ACH information, there will need to be two calls: one for account number, and one for routing number.
 
 ```cs
-var request = new TokenRequest
-{
-    Id = "tracking_id",
-    Type = TokenizationType.Card,
-    Value = "5200828282828210" // A fake debit card
-};
-
-var response = client.TokenApi.GetPaymentInformationTokenAsync(_accessToken, 5000, 3939, request)
+var tokenResponse = await client.TokenApi.GetPaymentInformationTokenAsync(accessTokenResponse.Token.AccessToken, 5000, 3939, new TokenRequest
+    {
+        Id = "tracking_id",
+        Type = TokenizationType.Card,
+        Value = "5200828282828210" // A fake debit card
+    })
     .ConfigureAwait(false);
 ```
 
@@ -56,14 +54,14 @@ var response = client.TokenApi.GetPaymentInformationTokenAsync(_accessToken, 500
 Send a request to get what the fee will be for a payment. Payments without the correct fee amounts will be rejected.
 
 ```cs
-var response = await client.LoanPayApi.CalculateFee(_accessToken, new CardFeeRequest
-  {
+var feeResponse = await client.LoanPayApi.CalculateFeeAsync(accessTokenResponse.Token.AccessToken, new CardFeeRequest
+{
     BankNumber = 5000,
     CompanyNumber = 3939,
     Amount = 12.34m,
     CardNetwork = "VISN",
     IsDebit = true
-  }).ConfigureAwait(false);
+}).ConfigureAwait(false);
 ```
 
 # Submitting the Payment
@@ -79,7 +77,7 @@ var cardPayment = new CardPaymentRequest
     CompanyNumber = 3939,
     AccountNumber = "123-123",
     Amount = 12.34m,
-    ConvenienceFee = 4.65m,
+    ConvenienceFee = feeResponse.FeeAmount,
     PaymentMethod = new CardPaymentMethod
     {
         CardToken = tokenResponse.PaymentInformationToken.Token,
@@ -94,7 +92,7 @@ var cardPayment = new CardPaymentRequest
     },
     Contact = new ContactInfo
     {
-        Name="Test Name",
+        Name = "Test Name",
         Phone = "(123) 456-7890",
         Email = "test@email.com",
         Address = "1039 3 Mile Rd NW",
@@ -106,7 +104,7 @@ var cardPayment = new CardPaymentRequest
     SessionTimeStamp = DateTime.Now
 };
 
-var response = await client.MpxApi.SubmitPayment(_accessToken, cardPayment, CancellationToken.None)
+var confirmationResponse = await client.LoanPayApi.SubmitPaymentAsync(accessTokenResponse.Token.AccessToken, cardPayment, CancellationToken.None)
     .ConfigureAwait(false);
 ```
 
@@ -119,7 +117,7 @@ var achPayment = new AchPaymentRequest
     CompanyNumber = 3939,
     AccountNumber = "123-123",
     Amount = 12.34m,
-    ConvenienceFee = 2.65m,
+    ConvenienceFee = feeResponse.FeeAmount,
     PaymentMethod = new AchPaymentMethod
     {
         AccountNumber = accountTokenResponse.PaymentInformationToken.Token,
@@ -140,6 +138,6 @@ var achPayment = new AchPaymentRequest
     SessionTimeStamp = DateTime.Now
 };
 
-var response = await client.MpxApi.SubmitPayment(_accessToken, achPayment, CancellationToken.None)
+var confirmationResponse = await client.LoanPayApi.SubmitPaymentAsync(accessTokenResponse.Token.AccessToken, achPayment, CancellationToken.None)
     .ConfigureAwait(false);
 ```
