@@ -4,29 +4,36 @@ A C# implementation for interacting with the LoanPay API.
 
 ## Making A Payment
 
-In order to make a successful payment, there are three steps.
+Four steps are needed to successfully make a payment:
 
-- Authorization
-  - Authenticate and get an access token
-- Tokenization
-  - Use your access token to secure the payment information
-- Calculating the fee
-  - Use the API to get the correct fee. Payments without the correct fee will be rejected.
-- Submit the payment
-  - Combine all of the information and send off the payment
+1. Authorization
 
-# Setting up your client
+   - Authenticate and get an access token.
 
-First you need an instance of your client.
+2. Tokenization
+
+   - Use your access token to secure the payment information.
+
+3. Fee Calculation
+
+   - Use the API to request the correct fee. Payments without the correct fee will be rejected.
+
+4. Payment Submission
+
+   - Combine all of the information and send off the payment.
+
+# Client Setup
+
+To begin, you need an instance of your client:
 
 ```cs
 var httpClient = new HttpClient();
-var environmentManager = new EnvironmentManager(Environment.Sandbox);
+var environmentManager = new EnvironmentManager(Mwi.LoanPay.Environment.Sandbox);
 
 var client = new Client(httpClient, environmentManager, "IdentityClientSecretGoesHere");
 ```
 
-# Getting an Access Token
+# 1. Access Token Retrieval
 
 Once you have an instance of your client, you can authenticate using the credentials provided to you.
 
@@ -35,9 +42,9 @@ var accessTokenResponse = await client.IdentityApi.GetAccessTokenAsync(new Ident
     .ConfigureAwait(false);
 ```
 
-# Tokenizing Payment Information
+# 2. Payment Information Tokenization
 
-Use your access token to secure payment information. For ACH information, there will need to be two calls: one for account number, and one for routing number.
+Use your access token to secure payment information. ACH information requires two calls, one for account number and one for routing number.
 
 ```cs
 var tokenResponse = await client.TokenApi.GetPaymentInformationTokenAsync(accessTokenResponse.Token.AccessToken, 5000, 3939, new TokenRequest
@@ -49,9 +56,9 @@ var tokenResponse = await client.TokenApi.GetPaymentInformationTokenAsync(access
     .ConfigureAwait(false);
 ```
 
-# Requesting a Fee
+# 3. Fee Request
 
-Send a request to get what the fee will be for a payment. Payments without the correct fee amounts will be rejected.
+Send a request to get the fee amount for a payment. Payments without the correct fee amounts will be rejected.
 
 ```cs
 var feeResponse = await client.LoanPayApi.CalculateFeeAsync(accessTokenResponse.Token.AccessToken, new CardFeeRequest
@@ -64,7 +71,7 @@ var feeResponse = await client.LoanPayApi.CalculateFeeAsync(accessTokenResponse.
 }).ConfigureAwait(false);
 ```
 
-# Submitting the Payment
+# 4. Payment Submission
 
 Submit the payment and get a confirmation number.
 
