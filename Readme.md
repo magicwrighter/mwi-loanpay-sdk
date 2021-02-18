@@ -22,7 +22,7 @@ Four steps are needed to successfully make a payment:
 
    - Combine all of the information and send off the payment.
 
-## Client Setup
+# Client Setup
 
 To begin, you need an instance of your client:
 
@@ -33,7 +33,7 @@ var environmentManager = new EnvironmentManager(Mwi.LoanPay.Environment.Sandbox)
 var client = new Client(httpClient, environmentManager, "IdentityClientSecretGoesHere");
 ```
 
-## 1. Access Token Retrieval
+# 1. Access Token Retrieval
 
 Once you have an instance of your client, you can authenticate using the credentials provided to you.
 
@@ -42,7 +42,7 @@ var accessTokenResponse = await client.IdentityApi.GetAccessTokenAsync(new Ident
     .ConfigureAwait(false);
 ```
 
-## 2. Payment Information Tokenization
+# 2. Payment Information Tokenization
 
 Use your access token to secure payment information. ACH information requires two calls, one for account number and one for routing number.
 
@@ -56,7 +56,7 @@ var tokenResponse = await client.TokenApi.GetPaymentInformationTokenAsync(access
     .ConfigureAwait(false);
 ```
 
-## 3. Fee Request
+# 3. Fee Request
 
 Send a request to get the fee amount for a payment. Payments without the correct fee amounts will be rejected.
 
@@ -71,7 +71,7 @@ var feeResponse = await client.LoanPayApi.CalculateFeeAsync(accessTokenResponse.
 }).ConfigureAwait(false);
 ```
 
-## 4. Payment Submission
+# 4. Payment Submission
 
 Submit the payment and get a confirmation number.
 
