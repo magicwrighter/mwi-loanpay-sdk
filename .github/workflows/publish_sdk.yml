@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -18,4 +18,4 @@ jobs:
     - name: Run SDK build
       run: .\spt\build.ps1
     - name: publish SDK
-      run: dotnet nuget push .\build\package\Mwi.LoanPay.*.nupkg --skip-duplicate
+      run: dotnet nuget push .\build\package\Mwi.LoanPay.*.nupkg --source https://api.nuget.org/v3/index.json --skip-duplicate
