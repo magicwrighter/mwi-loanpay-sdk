@@ -7,14 +7,12 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2019
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
-      with:        
-        source-url: https://api.nuget.org
+      uses: actions/setup-dotnet@v1      
       env:
         NUGET_AUTH_TOKEN: ${{secrets.NUGET_API_KEY}}
     - name: Run SDK build
