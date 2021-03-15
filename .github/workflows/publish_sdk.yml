@@ -14,4 +14,6 @@ jobs:
     - name: Run SDK build
       run: .\spt\build.ps1
     - name: publish SDK
-      run: dotnet nuget push .\build\package\Mwi.LoanPay.*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      env: 
+        NUGET_AUTH_KEY: ${{ secrets.NUGET_API_KEY }}
+      run: dotnet nuget push .\build\package\Mwi.LoanPay.*.nupkg --api-key ${NUGET_AUTH_KEY}  --source https://api.nuget.org/v3/index.json --skip-duplicate
