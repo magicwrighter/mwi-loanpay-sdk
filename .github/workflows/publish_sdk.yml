@@ -10,12 +10,8 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v1      
-      env:
-        NUGET_AUTH_TOKEN: ${{secrets.NUGET_API_KEY}}
+      uses: actions/checkout@v2    
     - name: Run SDK build
       run: .\spt\build.ps1
     - name: publish SDK
-      run: dotnet nuget push .\build\package\Mwi.LoanPay.*.nupkg --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push .\build\package\Mwi.LoanPay.*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
