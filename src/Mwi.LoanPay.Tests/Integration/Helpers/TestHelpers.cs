@@ -6,10 +6,10 @@ namespace Mwi.LoanPay.Tests.Integration.Helpers
 {
     public static class TestHelpers
     {
-        // These can be empty to test for Environment.Sandbox
-        public const int ConsortiumId = 0;
-        public const int BankNumber = 0;
-        public const int CompanyNumber = 0;
+        // These numbers don't matter for the sandbox
+        public const int ConsortiumId = 143;
+        public const int BankNumber = 5000;
+        public const int CompanyNumber = 3939;
 
         private const string IdentityClientSecret = "";
         private const string IdentityUserIdentifier = "";

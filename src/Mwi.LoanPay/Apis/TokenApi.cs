@@ -90,13 +90,13 @@ namespace Mwi.LoanPay.Apis
             }
 
             // Read request content
-            await using var contentStream = await response.Content.ReadAsStreamAsync()
-                .ConfigureAwait(false);
-
-            // Map to a json document for easy traversal
-            var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
-                .ConfigureAwait(
-                false);
+            JsonDocument jsonDocument;
+            using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            {
+                // Map to a json document for easy traversal
+                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+            }
 
             // Get the error field of the top level model
             if (!jsonDocument.RootElement.TryGetProperty("error", out var errorElement))

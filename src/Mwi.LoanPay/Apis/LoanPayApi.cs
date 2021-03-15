@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -48,6 +48,22 @@ namespace Mwi.LoanPay.Apis
         /// <param name="cancellationToken">Propagates notification that operations should be canceled</param>
         /// <returns>Response with either an error or a success result, but never both</returns>
         Task<PaymentConfirmationResponse> SubmitPaymentAsync(string accessToken, CardPaymentRequest cardPayment, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Get a payment status by confirmation number 
+        /// </summary>
+        /// <param name="accessToken">An access token from the IdentityApi</param>
+        /// <param name="confirmationNumber">The confirmation number from a previous payment</param>
+        /// <param name="cancellationToken">Propagates notification that operations should be canceled</param>
+        /// <returns>Response with either an error or a success result, but never both</returns>
+        Task<PaymentStatusResponse> GetPaymentStatusAsync(string accessToken, string confirmationNumber, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Cancel a pending payment by confirmation number 
+        /// </summary>
+        /// <param name="accessToken">An access token from the IdentityApi</param>
+        /// <param name="confirmationNumber">The confirmation number from a previous payment</param>
+        /// <param name="cancellationToken">Propagates notification that operations should be canceled</param>
+        /// <returns>Response with either an error or a success result, but never both</returns>
+        Task<CancelPaymentResponse> CancelPaymentAsync(string accessToken, string confirmationNumber, CancellationToken cancellationToken = default);
     }
 
     /// <inheritdoc cref="ILoanPayApi"/>
@@ -75,7 +91,8 @@ namespace Mwi.LoanPay.Apis
             HttpClient = httpClient;
         }
 
-        public async Task<FeeResponse> CalculateFeeAsync(string accessToken, AchFeeRequest achFeeRequest, CancellationToken cancellationToken = default)
+        public async Task<FeeResponse> CalculateFeeAsync(string accessToken, AchFeeRequest achFeeRequest,
+            CancellationToken cancellationToken = default)
         {
             var requestBody = JsonSerializer.Serialize(achFeeRequest, SerializerSettings);
 
@@ -83,7 +100,8 @@ namespace Mwi.LoanPay.Apis
                 .ConfigureAwait(false);
         }
 
-        public async Task<FeeResponse> CalculateFeeAsync(string accessToken, CardFeeRequest cardFeeRequest, CancellationToken cancellationToken = default)
+        public async Task<FeeResponse> CalculateFeeAsync(string accessToken, CardFeeRequest cardFeeRequest,
+            CancellationToken cancellationToken = default)
         {
             var requestBody = JsonSerializer.Serialize(cardFeeRequest, SerializerSettings);
 
@@ -91,7 +109,8 @@ namespace Mwi.LoanPay.Apis
                 .ConfigureAwait(false);
         }
 
-        public async Task<PaymentConfirmationResponse> SubmitPaymentAsync(string accessToken, AchPaymentRequest achPayment, CancellationToken cancellationToken = default)
+        public async Task<PaymentConfirmationResponse> SubmitPaymentAsync(string accessToken,
+            AchPaymentRequest achPayment, CancellationToken cancellationToken = default)
         {
             var requestBody = JsonSerializer.Serialize(achPayment, SerializerSettings);
 
@@ -99,7 +118,8 @@ namespace Mwi.LoanPay.Apis
                 .ConfigureAwait(false);
         }
 
-        public async Task<PaymentConfirmationResponse> SubmitPaymentAsync(string accessToken, CardPaymentRequest cardPayment, CancellationToken cancellationToken = default)
+        public async Task<PaymentConfirmationResponse> SubmitPaymentAsync(string accessToken,
+            CardPaymentRequest cardPayment, CancellationToken cancellationToken = default)
         {
             var requestBody = JsonSerializer.Serialize(cardPayment, SerializerSettings);
 
@@ -107,19 +127,37 @@ namespace Mwi.LoanPay.Apis
                 .ConfigureAwait(false);
         }
 
-        private async Task<FeeResponse> SendFeeRequest(string accessToken, string requestBody, string url, CancellationToken cancellationToken = default)
+        public async Task<PaymentStatusResponse> GetPaymentStatusAsync(string accessToken, string confirmationNumber,
+            CancellationToken cancellationToken = default)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_environmentManager.LoanPay, url));
+            return await SendPaymentStatusRequest(accessToken, $"payments/{confirmationNumber}/status",
+                cancellationToken);
+        }
 
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        public async Task<CancelPaymentResponse> CancelPaymentAsync(string accessToken, string confirmationNumber,
+            CancellationToken cancellationToken = default)
+        {
+            return await CancelPaymentRequest(accessToken, $"payments/{confirmationNumber}",
+                cancellationToken);
+        }
 
-            // Attach body
-            using var stringContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
-            request.Content = stringContent;
+        private async Task<FeeResponse> SendFeeRequest(string accessToken, string requestBody, string url,
+            CancellationToken cancellationToken = default)
+        {
+            HttpResponseMessage response;
+            using (var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_environmentManager.LoanPay, url)))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                // Attach body
+                using (var stringContent = new StringContent(requestBody, Encoding.UTF8, "application/json"))
+                {
+                    request.Content = stringContent;
 
-            var response = await HttpClient
-                .SendAsync(request, cancellationToken)
-                .ConfigureAwait(false);
+                    response = await HttpClient
+                        .SendAsync(request, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+            }
 
             // Check for failed status codes. We want to parse the error model returned on bad requests, so we skip those.
             if (!response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.BadRequest)
@@ -134,14 +172,15 @@ namespace Mwi.LoanPay.Apis
                 };
             }
 
+            JsonDocument jsonDocument;
             // Read request content
-            await using var contentStream = await response.Content.ReadAsStreamAsync()
-                .ConfigureAwait(false);
-
-            // Map to a json document for easy traversal
-            var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
-                .ConfigureAwait(
-                    false);
+            using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            {
+                // Map to a json document for easy traversal
+                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                    .ConfigureAwait(
+                        false);
+            }
 
             // Get the isError field of the top level model
             if (jsonDocument.RootElement.TryGetProperty("isError", out var isErrorElement))
@@ -169,20 +208,27 @@ namespace Mwi.LoanPay.Apis
             //If there was not an "isError" field, assume the request succeeded.
             var successResponse = JsonSerializer.Deserialize<FeeResponse>(responseText, SerializerSettings);
             return successResponse;
+
         }
 
-        private async Task<PaymentConfirmationResponse> SubmitPaymentRequest(string accessToken, string requestBody, string url, CancellationToken cancellationToken = default)
+        private async Task<PaymentConfirmationResponse> SubmitPaymentRequest(string accessToken, string requestBody,
+            string url, CancellationToken cancellationToken = default)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_environmentManager.LoanPay, url));
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            HttpResponseMessage response;
+            using (var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_environmentManager.LoanPay, url)))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            // Attach body
-            using var stringContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
-            request.Content = stringContent;
+                using (var stringContent = new StringContent(requestBody, Encoding.UTF8, "application/json"))
+                {
+                    // Attach body
+                    request.Content = stringContent;
 
-            var response = await HttpClient
-                .SendAsync(request, cancellationToken)
-                .ConfigureAwait(false);
+                    response = await HttpClient
+                        .SendAsync(request, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+            }
 
             // Check for failed status codes. We want to parse the error model returned on bad requests, so we skip those.
             if (!response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.BadRequest)
@@ -198,13 +244,13 @@ namespace Mwi.LoanPay.Apis
             }
 
             // Read request content
-            await using var contentStream = await response.Content.ReadAsStreamAsync()
-                .ConfigureAwait(false);
-
-            // Map to a json document for easy traversal
-            var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
-                .ConfigureAwait(
-                    false);
+            JsonDocument jsonDocument;
+            using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            {
+                // Map to a json document for easy traversal
+                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+            }
 
             // Get the isError field of the top level model
             if (jsonDocument.RootElement.TryGetProperty("isError", out var isErrorElement))
@@ -233,6 +279,132 @@ namespace Mwi.LoanPay.Apis
             {
                 Confirmation = JsonSerializer.Deserialize<PaymentConfirmation>(responseText, SerializerSettings)
             };
+        }
+
+        private async Task<PaymentStatusResponse> SendPaymentStatusRequest(string accessToken, string url,
+            CancellationToken cancellationToken = default)
+        {
+            HttpResponseMessage response;
+            using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_environmentManager.LoanPay, url)))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+                response = await HttpClient
+                    .SendAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            // Check for failed status codes. We want to parse the error model returned on bad requests, so we skip those.
+            if (!response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.BadRequest)
+            {
+                // Dump the whole content of the response on the error message.
+                var responseString = await response.Content.ReadAsStringAsync()
+                    .ConfigureAwait(false);
+
+                return new PaymentStatusResponse
+                {
+                    Error = $"{response.StatusCode}\n{responseString}"
+                };
+            }
+
+            // Read request content
+            JsonDocument jsonDocument;
+            using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            {
+                // Map to a json document for easy traversal
+                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            // Get the isError field of the top level model
+            if (jsonDocument.RootElement.TryGetProperty("isError", out var isErrorElement))
+            {
+                // If there was an error, read them
+                if (isErrorElement.GetBoolean())
+                {
+                    if (!jsonDocument.RootElement.TryGetProperty("errors", out var errorMessage))
+                    {
+                        // Handle parse failure 
+                        return new PaymentStatusResponse
+                        {
+                            Error = $"Could not read the response body.\n{jsonDocument.RootElement.GetRawText()}"
+                        };
+                    }
+
+                    return new PaymentStatusResponse
+                    {
+                        Error = errorMessage.GetRawText()
+                    };
+                }
+            }
+
+            var responseText = jsonDocument.RootElement.GetRawText();
+            //If there was not an "isError" field, assume the request succeeded.
+            return new PaymentStatusResponse
+            {
+                PaymentStatus = JsonSerializer.Deserialize<PaymentStatus>(responseText, SerializerSettings)
+            };
+        }
+
+        private async Task<CancelPaymentResponse> CancelPaymentRequest(string accessToken, string url,
+            CancellationToken cancellationToken = default)
+        {
+            HttpResponseMessage response;
+            using (var request = new HttpRequestMessage(HttpMethod.Delete, new Uri(_environmentManager.LoanPay, url)))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+                response = await HttpClient
+                    .SendAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            // Check for failed status codes. We want to parse the error model returned on bad requests, so we skip those.
+            if (!response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.BadRequest)
+            {
+                // Dump the whole content of the response on the error message.
+                var responseString = await response.Content.ReadAsStringAsync()
+                    .ConfigureAwait(false);
+
+                return new CancelPaymentResponse
+                {
+                    Error = $"{response.StatusCode}\n{responseString}"
+                };
+            }
+
+            // Read request content
+            JsonDocument jsonDocument;
+            using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            {
+                // Map to a json document for easy traversal
+                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            // Get the isError field of the top level model
+            if (jsonDocument.RootElement.TryGetProperty("isError", out var isErrorElement))
+            {
+                // If there was an error, read them
+                if (isErrorElement.GetBoolean())
+                {
+                    if (!jsonDocument.RootElement.TryGetProperty("errors", out var errorMessage))
+                    {
+                        // Handle parse failure 
+                        return new CancelPaymentResponse
+                        {
+                            Error = $"Could not read the response body.\n{jsonDocument.RootElement.GetRawText()}"
+                        };
+                    }
+
+                    return new CancelPaymentResponse
+                    {
+                        Error = errorMessage.GetRawText()
+                    };
+                }
+            }
+
+            //If there was not an "isError" field, assume the request succeeded.
+            return new CancelPaymentResponse();
         }
     }
 }
