@@ -1,22 +1,22 @@
-name: Build Loanpay SDK
+name: Build and publish LoanPay SDK
 
-on:
-  push:
-    branches: [ master ]
+on:  
   pull_request:
     branches: [ master ]
 
 jobs:
   build:
-
-    runs-on: windows-2019
-
+    runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 5.0.x
+      with:        
+        source-url: https://api.nuget.org
+      env:
+        NUGET_AUTH_TOKEN: ${{secrets.NUGET_API_KEY}}
     - name: Run SDK build
       run: .\spt\build.ps1
-    
+    - name: publish SDK
+      run: dotnet nuget push .\build\package\Mwi.LoanPay.*.nupkg --skip-duplicate
