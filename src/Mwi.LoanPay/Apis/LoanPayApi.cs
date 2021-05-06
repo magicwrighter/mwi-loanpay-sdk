@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -64,6 +65,26 @@ namespace Mwi.LoanPay.Apis
         /// <param name="cancellationToken">Propagates notification that operations should be canceled</param>
         /// <returns>Response with either an error or a success result, but never both</returns>
         Task<CancelPaymentResponse> CancelPaymentAsync(string accessToken, string confirmationNumber, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Get LoanPay account details by account number 
+        /// </summary>
+        /// <param name="accessToken">An access token from the IdentityApi</param>
+        /// <param name="bankNumber">The LoanPay account bank number</param>
+        /// <param name="companyNumber">The LoanPay account company number</param>
+        /// <param name="accountNumber">The LoanPay account number</param>
+        /// <param name="cancellationToken">Propagates notification that operations should be canceled</param>
+        /// <returns>Response with either an error or a success result, but never both</returns>
+        Task<GetAccountDetailsResponse> GetAccountDetailsAsync(string accessToken, int bankNumber, int companyNumber, string accountNumber, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Get list of LoanPay account details by account number prefix 
+        /// </summary>
+        /// <param name="accessToken">An access token from the IdentityApi</param>
+        /// <param name="bankNumber">The LoanPay account bank number</param>
+        /// <param name="companyNumber">The LoanPay account company number</param>
+        /// <param name="accountPrefix">The LoanPay account number prefix</param>
+        /// <param name="cancellationToken">Propagates notification that operations should be canceled</param>
+        /// <returns>Response with either an error or a success result, but never both</returns>
+        Task<GetAccountDetailsByPrefixResponse> GetAccountDetailsByPrefixAsync(string accessToken, int bankNumber, int companyNumber, string accountPrefix, CancellationToken cancellationToken = default);
     }
 
     /// <inheritdoc cref="ILoanPayApi"/>
@@ -139,6 +160,20 @@ namespace Mwi.LoanPay.Apis
         {
             return await CancelPaymentRequest(accessToken, $"payments/{confirmationNumber}",
                 cancellationToken);
+        }
+
+        public async Task<GetAccountDetailsResponse> GetAccountDetailsAsync(string accessToken, int bankNumber,
+            int companyNumber, string accountNumber, CancellationToken cancellationToken = default)
+        {
+            return await GetAccountDetailsRequest(accessToken,
+                $"fis/{bankNumber}/bcs/{companyNumber}/accounts/{accountNumber}", cancellationToken);
+        }
+
+        public async Task<GetAccountDetailsByPrefixResponse> GetAccountDetailsByPrefixAsync(string accessToken, int bankNumber,
+            int companyNumber, string accountPrefix, CancellationToken cancellationToken = default)
+        {
+            return await GetAccountDetailsByPrefixRequest(accessToken,
+                $"fis/{bankNumber}/bcs/{companyNumber}/accounts?starts_with={accountPrefix}", cancellationToken);
         }
 
         private async Task<FeeResponse> SendFeeRequest(string accessToken, string requestBody, string url,
@@ -405,6 +440,137 @@ namespace Mwi.LoanPay.Apis
 
             //If there was not an "isError" field, assume the request succeeded.
             return new CancelPaymentResponse();
+        }
+
+        private async Task<GetAccountDetailsResponse> GetAccountDetailsRequest(string accessToken, string url,
+            CancellationToken cancellationToken = default)
+        {
+            HttpResponseMessage response;
+            using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_environmentManager.LoanPay, url)))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+                response = await HttpClient
+                    .SendAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            // Check for failed status codes. We want to parse the error model returned on bad requests, so we skip those.
+            if (!response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.BadRequest)
+            {
+                // Dump the whole content of the response on the error message.
+                var responseString = await response.Content.ReadAsStringAsync()
+                    .ConfigureAwait(false);
+
+                return new GetAccountDetailsResponse
+                {
+                    Error = $"{response.StatusCode}\n{responseString}"
+                };
+            }
+
+            // Read request content
+            JsonDocument jsonDocument;
+            using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            {
+                // Map to a json document for easy traversal
+                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            // Get the isError field of the top level model
+            if (jsonDocument.RootElement.TryGetProperty("isError", out var isErrorElement))
+            {
+                // If there was an error, read them
+                if (isErrorElement.GetBoolean())
+                {
+                    if (!jsonDocument.RootElement.TryGetProperty("errors", out var errorMessage))
+                    {
+                        // Handle parse failure 
+                        return new GetAccountDetailsResponse
+                        {
+                            Error = $"Could not read the response body.\n{jsonDocument.RootElement.GetRawText()}"
+                        };
+                    }
+
+                    return new GetAccountDetailsResponse
+                    {
+                        Error = errorMessage.GetRawText()
+                    };
+                }
+            }
+
+            //If there was not an "isError" field, assume the request succeeded.
+            var responseText = jsonDocument.RootElement.GetRawText();
+            return new GetAccountDetailsResponse
+            {
+                AccountDetails = JsonSerializer.Deserialize<AccountDetails>(responseText, SerializerSettings)
+            };
+        }
+
+        private async Task<GetAccountDetailsByPrefixResponse> GetAccountDetailsByPrefixRequest(string accessToken, string url,
+            CancellationToken cancellationToken = default)
+        {
+            HttpResponseMessage response;
+            using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_environmentManager.LoanPay, url)))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+                response = await HttpClient
+                    .SendAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            // Check for failed status codes. We want to parse the error model returned on bad requests, so we skip those.
+            if (!response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.BadRequest)
+            {
+                // Dump the whole content of the response on the error message.
+                var responseString = await response.Content.ReadAsStringAsync()
+                    .ConfigureAwait(false);
+
+                return new GetAccountDetailsByPrefixResponse
+                {
+                    Error = $"{response.StatusCode}\n{responseString}"
+                };
+            }
+
+            // Read request content
+            JsonDocument jsonDocument;
+            using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            {
+                // Map to a json document for easy traversal
+                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            // Get the isError field of the top level model
+            // The array check is for mountebank testing
+            if (jsonDocument.RootElement.ValueKind != JsonValueKind.Array && jsonDocument.RootElement.TryGetProperty("isError", out var isErrorElement))
+            {
+                // If there was an error, read them
+                if (isErrorElement.GetBoolean())
+                {
+                    if (!jsonDocument.RootElement.TryGetProperty("errors", out var errorMessage))
+                    {
+                        // Handle parse failure 
+                        return new GetAccountDetailsByPrefixResponse
+                        {
+                            Error = $"Could not read the response body.\n{jsonDocument.RootElement.GetRawText()}"
+                        };
+                    }
+
+                    return new GetAccountDetailsByPrefixResponse
+                    {
+                        Error = errorMessage.GetRawText()
+                    };
+                }
+            }
+
+            //If there was not an "isError" field, assume the request succeeded.
+            var responseText = jsonDocument.RootElement.GetRawText();
+            return new GetAccountDetailsByPrefixResponse
+            {
+                AccountDetailsList = JsonSerializer.Deserialize<List<AccountDetails>>(responseText, SerializerSettings)
+            };
         }
     }
 }
