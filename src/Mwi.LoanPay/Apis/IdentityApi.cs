@@ -24,8 +24,8 @@ namespace Mwi.LoanPay.Apis
     {
         private readonly IEnvironmentManager _environmentManager;
         private readonly HttpClient _httpClient;
-        private readonly string _identityClientSecret;
         private readonly string _identityClientId;
+        private readonly string _identityClientSecret;
 
         private string Scopes => _environmentManager.Env == Environment.Production
             ? "tkn mpx.payment"
@@ -36,15 +36,15 @@ namespace Mwi.LoanPay.Apis
         /// </summary>
         /// <param name="httpClient">Sets the HttpClient to be used by the IdentityApi</param>
         /// <param name="environmentManager">Sets the environment to be used by the IdentityApi</param>
-        /// <param name="identityClientSecret">Sets the Identity Client Secret to be used by the IdentityApi</param>
         /// <param name="identityClientId">Sets the Identity Client Id to be used by the IdentityApi</param>
+        /// <param name="identityClientSecret">Sets the Identity Client Secret to be used by the IdentityApi</param>
         public IdentityApi(HttpClient httpClient, IEnvironmentManager environmentManager,
             string identityClientId, string identityClientSecret)
         {
             _environmentManager = environmentManager;
             _httpClient = httpClient;
-            _identityClientSecret = identityClientSecret;
             _identityClientId = identityClientId;
+            _identityClientSecret = identityClientSecret;
         }
 
         public async Task<IdentityResponse> GetAccessTokenAsync(IdentityRequest request)
