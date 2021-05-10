@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using IdentityModel.Client;
@@ -24,8 +24,8 @@ namespace Mwi.LoanPay.Apis
     {
         private readonly IEnvironmentManager _environmentManager;
         private readonly HttpClient _httpClient;
-        private const string IdentityClientId = "mpxapi-client";
         private readonly string _identityClientSecret;
+        private readonly string _identityClientId;
 
         private string Scopes => _environmentManager.Env == Environment.Production
             ? "tkn mpx.payment"
@@ -37,12 +37,14 @@ namespace Mwi.LoanPay.Apis
         /// <param name="httpClient">Sets the HttpClient to be used by the IdentityApi</param>
         /// <param name="environmentManager">Sets the environment to be used by the IdentityApi</param>
         /// <param name="identityClientSecret">Sets the Identity Client Secret to be used by the IdentityApi</param>
+        /// <param name="identityClientId">Sets the Identity Client Id to be used by the IdentityApi</param>
         public IdentityApi(HttpClient httpClient, IEnvironmentManager environmentManager,
-            string identityClientSecret)
+            string identityClientId, string identityClientSecret)
         {
             _environmentManager = environmentManager;
             _httpClient = httpClient;
             _identityClientSecret = identityClientSecret;
+            _identityClientId = identityClientId;
         }
 
         public async Task<IdentityResponse> GetAccessTokenAsync(IdentityRequest request)
@@ -50,7 +52,7 @@ namespace Mwi.LoanPay.Apis
             var identityTokenRequest = new PasswordTokenRequest
             {
                 RequestUri = new Uri(_environmentManager.IdentityUrl, "connect/token"),
-                ClientId = IdentityClientId,
+                ClientId = _identityClientId,
                 ClientSecret = _identityClientSecret,
                 Scope = Scopes,
 
@@ -75,4 +77,4 @@ namespace Mwi.LoanPay.Apis
             };
         }
     }
-}   
+}
