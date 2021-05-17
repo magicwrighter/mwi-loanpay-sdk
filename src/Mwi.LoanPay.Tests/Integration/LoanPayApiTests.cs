@@ -285,5 +285,31 @@ namespace Mwi.LoanPay.Tests.Integration
 
             Assert.False(actual.IsError);
         }
+
+        [Fact]
+        public void GetAccountDetails_ReturnSuccess_WhenBillingAccountExists()
+        {
+            var actual = _loanPayClient.LoanPayApi.GetAccountDetailsAsync(_accessToken, TestHelpers.BankNumber, TestHelpers.CompanyNumber, "123-123", CancellationToken.None)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+
+            Assert.False(actual.IsError);
+            Assert.Equal("123-123", actual.AccountDetails.AccountNumber);
+        }
+
+        [Fact]
+        public void GetAccountDetailsByPrefix_ReturnSuccess_WhenBillingAccountsExists()
+        {
+            var actual = _loanPayClient.LoanPayApi
+                .GetAccountDetailsByPrefixAsync(_accessToken, TestHelpers.BankNumber, TestHelpers.CompanyNumber, "123", CancellationToken.None)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+
+            Assert.False(actual.IsError);
+            Assert.True(actual.AccountDetailsList.Count > 1);
+            Assert.Equal("123100", actual.AccountDetailsList[0].AccountNumber);
+        }
     }
 }
