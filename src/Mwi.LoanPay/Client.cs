@@ -1,4 +1,4 @@
-﻿using System.Net.Http;
+using System.Net.Http;
 using Mwi.LoanPay.Apis;
 
 namespace Mwi.LoanPay
@@ -36,10 +36,11 @@ namespace Mwi.LoanPay
         /// </summary>
         /// <param name="httpClient">Sets the HttpClient to be used by the LoanPayClient</param>
         /// <param name="environmentManager">Sets the environment to be used by the LoanPayClient</param>
+        /// <param name="identityClientId">Sets the Identity Client Id to be used by the LoanPayClient</param>
         /// <param name="identityClientSecret">Sets the Identity Client Secret to be used by the LoanPayClient</param>
-        public Client(HttpClient httpClient, IEnvironmentManager environmentManager, string identityClientSecret)
+        public Client(HttpClient httpClient, IEnvironmentManager environmentManager, string identityClientId, string identityClientSecret)
         {
-            IdentityApi = new IdentityApi(httpClient, environmentManager, identityClientSecret);
+            IdentityApi = new IdentityApi(httpClient, environmentManager, identityClientId, identityClientSecret);
             LoanPayApi = new LoanPayApi(httpClient, environmentManager);
             TokenApi = new TokenApi(httpClient, environmentManager);
         }
