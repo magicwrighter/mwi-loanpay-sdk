@@ -77,14 +77,17 @@ var cardTokenResponse = await client.TokenApi.GetPaymentInformationTokenAsync(ac
 Send a request to get the fee amount for a payment. Payments without the correct fee amounts will be rejected.
 
 ```cs
-var feeResponse = await client.LoanPayApi.CalculateFeeAsync(accessTokenResponse.Token.AccessToken, new CardFeeRequest
+var cardFeeRequest = new CardFeeRequest
 {
     BankNumber = 5000,
     CompanyNumber = 3939,
     Amount = 12.34m,
     CardNetwork = "VISN",
     IsDebit = true
-}).ConfigureAwait(false);
+};
+
+var feeResponse = await client.LoanPayApi.CalculateFeeAsync(accessTokenResponse.Token.AccessToken, cardFeeRequest, CancellationToken.None)
+    .ConfigureAwait(false);
 ```
 
 ## 4. Payment Submission
@@ -143,8 +146,8 @@ var achPayment = new AchPaymentRequest
     ConvenienceFee = feeResponse.FeeAmount,
     PaymentMethod = new AchPaymentMethod
     {
-        AccountNumber = accountTokenResponse.PaymentInformationToken.Token,
-        RoutingNumber = routingTokenResponse.PaymentInformationToken.Token,
+        AccountToken = accountTokenResponse.PaymentInformationToken.Token,
+        RoutingToken = routingTokenResponse.PaymentInformationToken.Token,
         AccountType = BankAccountType.Checking
     },
     Contact = new ContactInfo
@@ -168,8 +171,6 @@ var confirmationResponse = await client.LoanPayApi.SubmitPaymentAsync(accessToke
 
 Retrieve a payment status by confirmation number.
 
-### Card
-
 ```cs
 var paymentStatusResponse = await client.LoanPayApi.GetPaymentStatusAsync(accessTokenResponse.Token.AccessToken, confirmationResponse.Confirmation.ConfirmationNumber, CancellationToken.None)
     .ConfigureAwait(false);
@@ -178,8 +179,6 @@ var paymentStatusResponse = await client.LoanPayApi.GetPaymentStatusAsync(access
 ## 6. Cancel Payment Submission 
 
 Submit a cancel payment request by confirmation number.
-
-### Card
 
 ```cs
 var cancelPaymentResponse = await client.LoanPayApi.CancelPaymentAsync(accessTokenResponse.Token.AccessToken, confirmationResponse.Confirmation.ConfirmationNumber, CancellationToken.None)
@@ -190,7 +189,7 @@ var cancelPaymentResponse = await client.LoanPayApi.CancelPaymentAsync(accessTok
 Get LoanPay account details by billing account number.
 
 ```cs
-var getLoanPayAccountResponse = = await client.LoanPayApi.GetLoanPayAccountAsync(accessTokenResponse.Token.AccessToken, cardPayment.accountNumber, CancellationToken.None)
+var getAccountDetailsResponse = await client.LoanPayApi.GetAccountDetailsAsync(accessTokenResponse.Token.AccessToken, cardPayment.BankNumber, cardPayment.CompanyNumber, cardPayment.AccountNumber, CancellationToken.None)
     .ConfigureAwait(false);
 ```
 
@@ -199,6 +198,6 @@ var getLoanPayAccountResponse = = await client.LoanPayApi.GetLoanPayAccountAsync
 Get LoanPay accounts details by billing account number prefix.
 
 ```cs
-var getLoanPayAccountResponse = = await client.LoanPayApi.GetLoanPayAccountsByPrefixAsync(accessTokenResponse.Token.AccessToken, accountNumberPrefix, CancellationToken.None)
+var getLoanPayDetailsByPrefixResponse = await client.LoanPayApi.GetAccountDetailsByPrefixAsync(accessTokenResponse.Token.AccessToken, cardPayment.BankNumber, cardPayment.CompanyNumber, accountNumberPrefix, CancellationToken.None)
     .ConfigureAwait(false);
 ```
