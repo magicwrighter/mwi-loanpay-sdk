@@ -93,9 +93,19 @@ namespace Mwi.LoanPay.Apis
             JsonDocument jsonDocument;
             using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
-                // Map to a json document for easy traversal
-                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
+                // Map to a json document for easy traversal. 
+                try
+                {
+                    jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    return new TokenResponse
+                    {
+                        Error = $"Could not read the response body. {ex}"
+                    };
+                }
             }
 
             // Get the error field of the top level model
@@ -104,7 +114,7 @@ namespace Mwi.LoanPay.Apis
                 // Handle parse failure 
                 return new TokenResponse
                 {
-                    Error = $"Could not read the response body.\n{jsonDocument.RootElement.GetRawText()}"
+                    Error = $"Could not read error.\n{jsonDocument.RootElement.GetRawText()}"
                 };
             }
 
@@ -116,7 +126,7 @@ namespace Mwi.LoanPay.Apis
                     // Handle parse failure 
                     return new TokenResponse
                     {
-                        Error = $"Could not read the response body.\n{jsonDocument.RootElement.GetRawText()}"
+                        Error = $"Could not read the error response message.\n{jsonDocument.RootElement.GetRawText()}"
                     };
                 }
 
@@ -131,41 +141,45 @@ namespace Mwi.LoanPay.Apis
             {
                 if (!jsonDocument.RootElement.TryGetProperty("metadata", out var metadata))
                 {
-                    // handle parse failure 
-                    return new TokenResponse
-                    {
-                        Error = $"Could not read the response body.\n{jsonDocument.RootElement.GetRawText()}"
-
-                    };
-                }
-
-                // Get the error field of the metadata model
-                if (!metadata.TryGetProperty("error", out var metadataError))
-                {
                     // Handle parse failure 
                     return new TokenResponse
                     {
-                        Error = $"Could not read the response body.\n{jsonDocument.RootElement.GetRawText()}"
+                        Error = $"Could not read metadata.\n{jsonDocument.RootElement.GetRawText()}"
                     };
                 }
 
-                // Check if the metadata model contained an error. If so, attach it to the response model
-                if (metadataError.GetBoolean())
+                // Handle a case where metadata exists on the token object 
+                if (metadata.ValueKind == JsonValueKind.Object)
                 {
-                    if (!metadata.TryGetProperty("message", out var errorMessage))
+                    // Get the error field of the metadata model
+                    if (!metadata.TryGetProperty("error", out var metadataError))
                     {
-                        // handle parse failure 
+                        // Handle parse failure 
                         return new TokenResponse
                         {
-                            Error = $"Could not read the response body.\n{jsonDocument.RootElement.GetRawText()}"
+                            Error = $"Could not read metadata error.\n{jsonDocument.RootElement.GetRawText()}"
                         };
                     }
 
-                    // request contained an error, deal with it
-                    return new TokenResponse
+                    // Check if the metadata model contained an error. If so, attach it to the response model
+                    if (metadataError.ValueKind == JsonValueKind.True)
                     {
-                        Error = errorMessage.GetString()
-                    };
+                        if (!metadata.TryGetProperty("message", out var errorMessage) || errorMessage.ValueKind != JsonValueKind.String)
+                        {
+                            // Handle parse failure
+                            return new TokenResponse
+                            {
+                                Error = $"Could not read metadata message.\n{jsonDocument.RootElement.GetRawText()}"
+                            };
+                        }
+
+                        // Return metadata model inner error. The token request may have succeeded,
+                        // but we are opting to avoid partial successes
+                        return new TokenResponse
+                        {
+                            Error = errorMessage.GetString()
+                        };
+                    }
                 }
             }
 

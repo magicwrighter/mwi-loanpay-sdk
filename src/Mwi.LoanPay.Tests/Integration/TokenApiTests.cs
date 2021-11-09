@@ -3,6 +3,7 @@ using Mwi.LoanPay.Models.Token;
 using Mwi.LoanPay.Tests.Integration.Helpers;
 using Xunit;
 using Xunit.Abstractions;
+
 namespace Mwi.LoanPay.Tests.Integration
 {
     [Trait("Category", "Integration")]
@@ -19,7 +20,7 @@ namespace Mwi.LoanPay.Tests.Integration
             _accessToken = TestHelpers.GetAccessToken(_loanPayClient);
         }
         [Fact]
-        public void GetCardTokenAsync_GetsTokenSuccessfully()
+        public async void GetCardTokenAsync_GetsTokenSuccessfully()
         {
             var request = new TokenRequest
             {
@@ -27,16 +28,17 @@ namespace Mwi.LoanPay.Tests.Integration
                 Type = TokenizationType.Card,
                 Value = "5200828282828210" // A fake card
             };
-            var response = _loanPayClient.TokenApi.GetPaymentInformationTokenAsync(_accessToken, TestHelpers.BankNumber, TestHelpers.CompanyNumber, request)
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
+
+            var response = await _loanPayClient.TokenApi.GetPaymentInformationTokenAsync(_accessToken, TestHelpers.BankNumber, TestHelpers.CompanyNumber, request);
+
             if (response.IsError)
             {
                 _testOutputHelper.WriteLine(response.Error);
             }
+
             // Request was successful
             Assert.False(response.IsError);
+
             var actual = response.PaymentInformationToken;
             Assert.Equal(request.Id, actual.Id);
             Assert.Equal(request.Type, actual.Type);

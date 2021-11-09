@@ -26,7 +26,7 @@ namespace Mwi.LoanPay.Apis
         private readonly HttpClient _httpClient;
         private readonly string _identityClientId;
         private readonly string _identityClientSecret;
-
+        
         private string Scopes => _environmentManager.Env == Environment.Production
             ? "tkn mpx.payment"
             : "tkn mpx.sandbox";
@@ -77,4 +77,4 @@ namespace Mwi.LoanPay.Apis
             };
         }
     }
-}
+}   

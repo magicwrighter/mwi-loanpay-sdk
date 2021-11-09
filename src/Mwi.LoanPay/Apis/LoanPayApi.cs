@@ -204,17 +204,27 @@ namespace Mwi.LoanPay.Apis
                 return new FeeResponse
                 {
                     Error = $"{response.StatusCode}\n{responseString}"
-                };
+                };   
             }
 
             JsonDocument jsonDocument;
             // Read request content
             using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
-                // Map to a json document for easy traversal
-                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
-                    .ConfigureAwait(
-                        false);
+                try
+                {
+                    // Map to a json document for easy traversal
+                    jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    return new FeeResponse
+                    {
+                        Error = $"Could not read the response body. {ex}"
+                    };
+                }
+
             }
 
             // Get the isError field of the top level model
@@ -239,11 +249,10 @@ namespace Mwi.LoanPay.Apis
                 }
             }
 
-            var responseText = jsonDocument.RootElement.GetRawText();
             //If there was not an "isError" field, assume the request succeeded.
+            var responseText = jsonDocument.RootElement.GetRawText();
             var successResponse = JsonSerializer.Deserialize<FeeResponse>(responseText, SerializerSettings);
             return successResponse;
-
         }
 
         private async Task<PaymentConfirmationResponse> SubmitPaymentRequest(string accessToken, string requestBody,
@@ -282,9 +291,19 @@ namespace Mwi.LoanPay.Apis
             JsonDocument jsonDocument;
             using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
-                // Map to a json document for easy traversal
-                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
+                try
+                {
+                    // Map to a json document for easy traversal
+                    jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    return new PaymentConfirmationResponse
+                    {
+                        Error = $"Could not read the response body. {ex}"
+                    };
+                }
             }
 
             // Get the isError field of the top level model
@@ -346,9 +365,19 @@ namespace Mwi.LoanPay.Apis
             JsonDocument jsonDocument;
             using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
-                // Map to a json document for easy traversal
-                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
+                try
+                {
+                    // Map to a json document for easy traversal
+                    jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    return new PaymentStatusResponse
+                    {
+                        Error = $"Could not read the response body. {ex}"
+                    };
+                }
             }
 
             // Get the isError field of the top level model
@@ -407,13 +436,29 @@ namespace Mwi.LoanPay.Apis
                 };
             }
 
+            // Cancelling a pending payment returns an empty body if it succeeds, so we shouldn't try and parse anything and just exit.
+            if (response.IsSuccessStatusCode)
+            {
+                return new CancelPaymentResponse();
+            }
+
             // Read request content
             JsonDocument jsonDocument;
             using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
-                // Map to a json document for easy traversal
-                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
+                try
+                {
+                    // Map to a json document for easy traversal
+                    jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    return new CancelPaymentResponse
+                    {
+                        Error = $"Could not read the response body. {ex}"
+                    };
+                }
             }
 
             // Get the isError field of the top level model
@@ -472,9 +517,19 @@ namespace Mwi.LoanPay.Apis
             JsonDocument jsonDocument;
             using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
-                // Map to a json document for easy traversal
-                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
+                try
+                {
+                    // Map to a json document for easy traversal
+                    jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    return new GetAccountDetailsResponse
+                    {
+                        Error = $"Could not read the response body. {ex}"
+                    };
+                }
             }
 
             // Get the isError field of the top level model
@@ -537,9 +592,19 @@ namespace Mwi.LoanPay.Apis
             JsonDocument jsonDocument;
             using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
-                // Map to a json document for easy traversal
-                jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
+                try
+                {
+                    // Map to a json document for easy traversal
+                    jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    return new GetAccountDetailsByPrefixResponse
+                    {
+                        Error = $"Could not read the response body. {ex}"
+                    };
+                }
             }
 
             // Get the isError field of the top level model
