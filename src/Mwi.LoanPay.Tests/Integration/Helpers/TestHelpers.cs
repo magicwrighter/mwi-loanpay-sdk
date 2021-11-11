@@ -40,11 +40,11 @@ namespace Mwi.LoanPay.Tests.Integration.Helpers
         public static TokenResponse GetCardToken(string accessToken, Client client)
         {
             var tokenResponse = client.TokenApi.GetPaymentInformationTokenAsync(accessToken, BankNumber, CompanyNumber, new TokenRequest
-            {
-                Id = "tracking_id",
-                Type = TokenizationType.Card,
-                Value = "5200828282828210"
-            })
+                {
+                    Id = "tracking_id",
+                    Type = TokenizationType.Card,
+                    Value = "5200828282828210"
+                })
                 .ConfigureAwait(false)
                 .GetAwaiter()
                 .GetResult();
@@ -55,26 +55,26 @@ namespace Mwi.LoanPay.Tests.Integration.Helpers
         public static TokenResponse GetAccountToken(string accessToken, Client client)
         {
             var tokenResponse = client.TokenApi.GetPaymentInformationTokenAsync(accessToken, BankNumber, CompanyNumber, new TokenRequest
-            {
-                Id = "account_id_1",
-                Type = TokenizationType.AccountNumber,
-                Value = "00000123456789"
-            })
+                {
+                    Id = "account_id_1",
+                    Type = TokenizationType.AccountNumber,
+                    Value = "00000123456789"
+                })
                 .ConfigureAwait(false)
                 .GetAwaiter()
                 .GetResult();
 
             return tokenResponse;
         }
-
+        
         public static TokenResponse GetRoutingToken(string accessToken, Client client)
         {
             var tokenResponse = client.TokenApi.GetPaymentInformationTokenAsync(accessToken, BankNumber, CompanyNumber, new TokenRequest
-            {
-                Id = "routing_id_1",
-                Type = TokenizationType.RoutingNumber,
-                Value = "123123123"
-            })
+                {
+                    Id = "routing_id_1",
+                    Type = TokenizationType.RoutingNumber,
+                    Value = "123123123"
+                })
                 .ConfigureAwait(false)
                 .GetAwaiter()
                 .GetResult();

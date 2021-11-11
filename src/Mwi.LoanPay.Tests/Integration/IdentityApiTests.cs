@@ -1,5 +1,4 @@
-﻿using System.Net.Http;
-using Mwi.LoanPay.Models.Identity;
+using System.Net.Http;
 using Mwi.LoanPay.Tests.Integration.Helpers;
 using Xunit;
 using Xunit.Abstractions;
