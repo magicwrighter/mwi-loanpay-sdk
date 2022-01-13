@@ -215,14 +215,15 @@ namespace Mwi.LoanPay.Tests.Unit
 
 
         [Fact]
-        public async void GetCardTokenAsync_ReturnsMetadataError_WithoutMetadata()
+        public async void GetCardTokenAsync_ReturnsSuccess_WithoutMetadata()
         {
             const string responseBody = @"
                 {
                   ""id"": ""76c24b49-0c60-4609-94e6-1167ebbcfe3b"",
-                  ""token"": """",
+                  ""token"": ""9524628308510227"",
                   ""type"": ""cc"",
                   ""frequency"": ""once"",
+                  ""metadata"": null,
                   ""error"": false,
                   ""message"": """",
                   ""abbreviatedValue"": ""8210""
@@ -239,10 +240,13 @@ namespace Mwi.LoanPay.Tests.Unit
 
             var actual = await sut.TokenApi.GetPaymentInformationTokenAsync("", 0, 0, request);
 
-            Assert.True(actual.IsError);
-            Assert.Null(actual.PaymentInformationToken);
-
-            Assert.StartsWith("Could not read metadata.", actual.Error);
+            Assert.False(actual.IsError);
+            Assert.NotNull(actual.PaymentInformationToken);
+            Assert.Equal("9524628308510227", actual.PaymentInformationToken.Token);
+            Assert.Equal("76c24b49-0c60-4609-94e6-1167ebbcfe3b", actual.PaymentInformationToken.Id);
+            Assert.Equal(TokenizationType.Card, actual.PaymentInformationToken.Type);
+            Assert.Equal("8210", actual.PaymentInformationToken.AbbreviatedValue);
+            Assert.Null(actual.PaymentInformationToken.Metadata);
         }
 
         [Fact]
