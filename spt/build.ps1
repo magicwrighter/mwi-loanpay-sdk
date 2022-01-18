@@ -2,7 +2,7 @@ Param(
     [string] $VersionSuffix = ""
 )
 
-$BuildDirectory = "$PSScriptRoot\..\build"
+$BuildDirectory   = "$PSScriptRoot\..\build"
 $PackageDirectory = "$BuildDirectory\package"
 
 Write-Host -NoNewline ".NET SDK Version".PadRight(40, ' ')
@@ -31,7 +31,7 @@ $projectDirs = Get-ChildItem $PSScriptRoot\..\src -Directory | Where-Object { -n
 # Projects that we just need to run test for.
 $testProjects = $projectDirs | Where-Object { $_.Name.EndsWith(".Tests") }
 
-# Projects that need to be built into packages.
+# Proejcts that need to be built into packages.
 $packageProjects = $projectDirs | Where-Object { -not ($_.Name.EndsWith(".Tests")) }
 
 Write-Host @"
@@ -40,7 +40,7 @@ Write-Host @"
 ==================================================
 "@
 
-foreach ($dir in $projectDirs) {
+foreach($dir in $projectDirs) {
     dotnet restore $dir.FullName
 
     if ($LASTEXITCODE -ne 0) {
@@ -56,7 +56,7 @@ Write-Host @"
 ==================================================
 "@
 
-foreach ($dir in $testProjects) {
+foreach($dir in $testProjects) {
     $csprojFile = "$($dir.FullName)/$($dir.Name).csproj"
 
     if (-not (Test-Path $csprojFile)) {
@@ -73,7 +73,7 @@ Write-Host @"
 ==================================================
 "@
 
-foreach ($dir in $packageProjects) {
+foreach($dir in $packageProjects) {
     $csprojFile = "$($dir.FullName)/$($dir.Name).csproj"
 
     if (-not (Test-Path $csprojFile)) {
