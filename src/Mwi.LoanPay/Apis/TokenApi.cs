@@ -60,7 +60,7 @@ namespace Mwi.LoanPay.Apis
             var queryParams = "";
             if (request.Type == TokenizationType.Card)
             {
-                queryParams = "?expand=metadata";
+                queryParams = "expand=metadata";
             }
 
             var builder = new UriBuilder(EnvironmentManager.TokenUrl);
